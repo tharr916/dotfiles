@@ -1,0 +1,83 @@
+#
+# Include this in your own .gitconfig by using the
+# [include] directive with the path to this file
+#
+# [include]
+#    path = ~/.gitconfig.aliases
+#
+# If you don't have any existing includes, you can add this via the following command
+# 
+#   git config --global include.path ~/.gitconfig.aliases
+#
+
+[alias]
+	## Helpers
+	st = status
+	# Open .gitconfig with editor defined
+	ec = config --global -e
+	# List all aliases
+	alias = ! git config --get-regexp ^alias\\. | sed -e s/^alias\\.// -e s/\\ /\\ =\\ /
+	# Get current branch name
+	currentbranch = rev-parse --abbrev-ref HEAD
+	# Get username
+	username = config --get user.name
+	# Browse repo URL using Windows Web Browser
+	browse = "!explorer `git config remote.origin.url`"
+	# Find $1 in the code even if it was deleted
+	find = "!f() { git log -S ${1} --source --all; }; f"
+
+	## Branch
+	co = checkout
+	# Checkout previous checked out branch
+	cp = checkout -
+	# Lists all branches including remote branches
+	branches = branch -a
+	# Last 20 recent worked on branches from anybody, or last $1
+	allrecent = "!f() { git for-each-ref --sort=-committerdate refs/remotes --count=${1-20} --color=always --format='%(HEAD) %(color:yellow)%(refname:short)%(color:reset) - %(contents:subject) - %(color:bold blue)%(authorname) %(color:green)(%(committerdate:relative))%(color:reset) - %(color:bold red)%(objectname:short)%(color:reset)' | sed "s/origin.//"; }; f"
+	# My last recent worked on branches, or the one by $1
+	recent = "!f() { git allrecent | grep -i \"${1-$(git username)}\"; }; f"
+
+	## Log
+	# Colorful log with graph
+	lg = "!f() { git log ${1-$(git currentbranch)} --color --graph --pretty=format:'%C(bold red)%h%Creset -%C(yellow)%d%Creset %s %C(green)(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit -- ; }; f"
+	# Colorful log showing number of added and deleted lines on each file per commit
+	ll = log --color --pretty=format:'%C(bold red)%h%C(yellow)%d %Creset%s %C(green)(%cr) %C(bold blue)<%an>' --numstat
+	# Colorful compact log with relative date
+	ldr = log --pretty=format:'%C(bold red)%h %C(green)%ad%C(yellow)%d %Creset%s %C(bold blue)<%an>' --date=relative
+	# Colorful compact log with short date
+	lds = log --pretty=format:'%C(bold red)%h %C(green)%ad%C(yellow)%d %Creset%s %C(bold blue)<%an>' --date=short
+
+	## Diff
+	# Diff staged files highlighting individual character changes and space changes (see https://stackoverflow.com/questions/3231759/how-can-i-visualize-per-character-differences-in-a-unified-diff-file/25634420#25634420)
+	ds = diff --cached --color-words='[^[:space:]]|([[:alnum:]]|UTF_8_GUARD)+'
+	# Diff HEAD or specified commit with previous one highlighting individual character changes and space changes
+	diffp = "!f() { git diff "${1-HEAD}"^.."${1-HEAD}" --color-words='[^[:space:]]|([[:alnum:]]|UTF_8_GUARD)+'; }; f"
+
+	## Commit
+	amend = commit -a --amend
+
+	## Push
+	# Safer push
+	pf = push -f --force-with-lease
+
+	## Rebase
+	# Rebase interactive on HEAD back to number of commit defined by $1
+	ri = "!f() { git rebase -i HEAD~$1; }; f"
+	# Rebase abort
+	abort = rebase --abort
+
+	## Workflow
+	# Pulls changes from the remote while rebasing any local commit and removing remote-tracking branches that no longer exist on the remote
+	up = !git pull --rebase --prune $@ && git submodule update --init --recursive
+	# Adds all changes including untracked files and creates a commit with default SAVEPOINT message or using $1
+	save = "!f() { git add -A; git commit -m \"${1-SAVEPOINT}\"; }; f" 
+	# Undo last commit keeping it's changed files but not marked for commit
+	undo = reset HEAD~1 --mixed
+	# Commits everything in working directory and then does a hard reset to remove that commit. Use git reflog to restore commit.
+	wipe = !git add -A && git commit -qm 'WIPE SAVEPOINT' && git reset HEAD~1 --hard
+	# Deletes all branches merged in specified branch (or master if no branch is specified)
+	bclean = "!f() { git branch --merged ${1-master} | grep -v " ${1-master}$" | xargs -r git branch -d; }; f"
+ 	# Switches to specified branch (or master if no branch is specified), runs git up, then runs bclean.
+	bdone = "!f() { git checkout ${1-master} && git up && git bclean ${1-master}; }; f"
+
+	
